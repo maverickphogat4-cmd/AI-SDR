@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ProspectCard } from "@/components/prospect-card";
-import { MAX_PROSPECTS, type Prospect } from "@/lib/types";
+import { ResultCard } from "@/components/result-card";
+import { MAX_PROSPECTS, type GenerationResult, type Prospect } from "@/lib/types";
 
 function createEmptyProspect(): Prospect {
   return {
@@ -26,11 +27,36 @@ function isComplete(prospect: Prospect) {
   );
 }
 
+// Calls /api/generate for exactly one prospect. The dashboard always sends
+// a single-item array -- Stage 4's endpoint is happy to take a batch, but
+// firing one request per prospect (instead of one request for all of them)
+// is what lets each card resolve on its own instead of all popping in at
+// once behind a single blocking spinner.
+async function generateOne(prospect: Prospect): Promise<{ email?: string; tone?: string; error?: string }> {
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prospects: [prospect] }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? "Something went wrong generating this email." };
+    const result = data.results?.[0];
+    if (!result) return { error: "No result returned." };
+    if (result.error) return { error: result.error };
+    return { email: result.email, tone: result.tone };
+  } catch {
+    return { error: "Network error -- is the dev server running?" };
+  }
+}
+
 export default function DashboardPage() {
   // Lazy initializer: crypto.randomUUID() is impure, and a lazy `useState`
   // initializer is the one place React guarantees it runs exactly once
   // per mount (see the same pattern/reasoning in components/hero-scene.tsx).
   const [prospects, setProspects] = useState<Prospect[]>(() => [createEmptyProspect()]);
+  const [results, setResults] = useState<Record<string, GenerationResult>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addProspect = () => {
     setProspects((prev) => (prev.length >= MAX_PROSPECTS ? prev : [...prev, createEmptyProspect()]));
@@ -38,6 +64,12 @@ export default function DashboardPage() {
 
   const removeProspect = (id: string) => {
     setProspects((prev) => prev.filter((p) => p.id !== id));
+    setResults((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const updateProspect = (id: string, field: keyof Omit<Prospect, "id">, value: string) => {
@@ -47,10 +79,60 @@ export default function DashboardPage() {
   const canGenerate = prospects.length > 0 && prospects.every(isComplete);
 
   const handleGenerate = () => {
-    // Placeholder for now -- Stage 4 adds POST /api/generate and Stage 5
-    // wires this button up to call it and render results below.
-    console.log("Ready to generate emails for:", prospects);
+    setIsSubmitting(true);
+    setResults((prev) => {
+      const next = { ...prev };
+      prospects.forEach((p) => (next[p.id] = { status: "loading" }));
+      return next;
+    });
+
+    // Each task updates its own card the moment it resolves -- no awaiting
+    // the whole batch before anything renders.
+    const tasks = prospects.map(async (prospect) => {
+      const outcome = await generateOne(prospect);
+      setResults((prev) => ({
+        ...prev,
+        [prospect.id]: outcome.error
+          ? { status: "error", error: outcome.error }
+          : { status: "done", email: outcome.email, tone: outcome.tone },
+      }));
+    });
+
+    Promise.allSettled(tasks).then(() => setIsSubmitting(false));
   };
+
+  // "Simulate reply" / "Simulate no reply": record the outcome of the last
+  // touch, then generate again -- the new call reads updated memory, so the
+  // tone visibly shifts (warmer after a reply, more direct after silence).
+  // This is the whole "memory" pitch, demoable live without a real inbox.
+  const handleSimulate = async (prospect: Prospect, replied: boolean) => {
+    setResults((prev) => ({ ...prev, [prospect.id]: { status: "loading" } }));
+
+    const replyRes = await fetch("/api/reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: prospect.name, replied }),
+    });
+
+    if (!replyRes.ok) {
+      const data = await replyRes.json().catch(() => ({}));
+      setResults((prev) => ({
+        ...prev,
+        [prospect.id]: { status: "error", error: data.error ?? "Could not record the reply." },
+      }));
+      return;
+    }
+
+    const outcome = await generateOne(prospect);
+    setResults((prev) => ({
+      ...prev,
+      [prospect.id]: outcome.error
+        ? { status: "error", error: outcome.error }
+        : { status: "done", email: outcome.email, tone: outcome.tone },
+    }));
+  };
+
+  const hasResults = Object.keys(results).length > 0;
 
   return (
     <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-16">
@@ -98,13 +180,31 @@ export default function DashboardPage() {
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={!canGenerate}
+          disabled={!canGenerate || isSubmitting}
           title={canGenerate ? undefined : "Fill in name, company, bio, and a recent post for every prospect"}
           className="rounded-full bg-teal-400 px-8 py-3 text-sm font-semibold text-black transition-colors hover:bg-teal-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
         >
-          Generate emails
+          {isSubmitting ? "Generating..." : "Generate emails"}
         </button>
       </div>
+
+      {hasResults && (
+        <div className="mt-16">
+          <h2 className="mb-6 text-xl font-semibold text-white">Generated emails</h2>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {prospects
+              .filter((p) => results[p.id])
+              .map((prospect) => (
+                <ResultCard
+                  key={prospect.id}
+                  prospect={prospect}
+                  result={results[prospect.id]}
+                  onSimulate={(replied) => handleSimulate(prospect, replied)}
+                />
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

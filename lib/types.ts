@@ -12,3 +12,15 @@ export type Prospect = {
 };
 
 export const MAX_PROSPECTS = 10;
+
+// Per-prospect state for a generated email, keyed by prospect id on the
+// dashboard. Each card owns its own status so cards resolve independently
+// instead of behind one blocking spinner for the whole batch.
+export type GenerationStatus = "loading" | "done" | "error";
+
+export type GenerationResult = {
+  status: GenerationStatus;
+  email?: string;
+  tone?: string;
+  error?: string;
+};
