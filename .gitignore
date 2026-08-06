@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# runtime memory store -- generated/grown at runtime by lib/memory.ts.
+# data/memory.example.json (the seed structure) stays tracked.
+/data/memory.json
+
 # vercel
 .vercel
 

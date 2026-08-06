@@ -1,0 +1,36 @@
+{
+  "prospects": [
+    {
+      "id": "example-dana-whitfield",
+      "name": "Dana Whitfield",
+      "company": "Northwind Analytics",
+      "touches": [
+        {
+          "date": "2026-07-18T14:03:00.000Z",
+          "emailSent": "Hi Dana -- saw your post about Northwind's new self-serve pricing model and the churn drop that followed. Curious how you're thinking about onboarding for that segment next -- worth a quick chat?",
+          "tone": "warm-curious",
+          "replied": false
+        },
+        {
+          "date": "2026-07-25T09:41:00.000Z",
+          "emailSent": "Dana -- following up briefly. If self-serve onboarding is still a priority this quarter, happy to share what's worked for similar teams. 15 minutes?",
+          "tone": "direct",
+          "replied": false
+        }
+      ]
+    },
+    {
+      "id": "example-marcus-ilic",
+      "name": "Marcus Ilic",
+      "company": "Fieldstone Robotics",
+      "touches": [
+        {
+          "date": "2026-07-10T11:15:00.000Z",
+          "emailSent": "Marcus -- congrats on Fieldstone's Series B. Saw the note about doubling the field-ops team by Q4 -- that kind of scaling usually breaks a few things first. Worth comparing notes?",
+          "tone": "warm-curious",
+          "replied": true
+        }
+      ]
+    }
+  ]
+}
