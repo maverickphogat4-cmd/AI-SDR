@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template -- no secrets in it, and it documents what to set.
+!.env.example
 
 # runtime memory store -- generated/grown at runtime by lib/memory.ts.
 # data/memory.example.json (the seed structure) stays tracked.
