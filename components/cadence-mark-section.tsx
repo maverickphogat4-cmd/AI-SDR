@@ -1,21 +1,11 @@
 "use client";
 
-import { confetti } from "@tsparticles/confetti";
-import {
-  motion,
-  useAnimationControls,
-  useMotionTemplate,
-  useScroll,
-  useTransform,
-  type MotionValue,
-} from "framer-motion";
-import { useRef, useState } from "react";
-import { MotionButton } from "@/components/motion-button";
-import { useGetStartedTransition } from "@/components/transition-overlay";
-import { EASE, easeFn } from "@/lib/motion";
+import { motion, useMotionTemplate, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { useRef } from "react";
+import { GetStartedButton } from "@/components/get-started-button";
+import { easeFn } from "@/lib/motion";
 
 const ACCENT = "#2dd4bf";
-const GOLD = ["#FFD700", "#FFC700", "#FFB700", "#FFE066"];
 
 // ---------------------------------------------------------------------------
 // The "C" is an open circle -- gap centered on the right (3 o'clock) -- split
@@ -141,61 +131,19 @@ function ValuePoint({
 /**
  * Signature scroll moment: a 300vh section pins the "C" mark center-screen
  * (sticky trick -- see the wrapping div below) while three arcs light up in
- * sequence, one per scroll third, each paired with a value point. Clicking
- * "Get started" once fully lit flares the mark, fires a gold burst from its
- * center, then hands off to the existing teal wipe transition.
+ * sequence, one per scroll third, each paired with a value point. The
+ * closing "Get started" uses the same GetStartedButton (and the same
+ * LightTunnel + SplitFlapText transition) as every other one on the site --
+ * this section no longer has its own bespoke click handler.
  */
 export function CadenceMarkSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const markRef = useRef<HTMLDivElement>(null);
-  const { navigate } = useGetStartedTransition();
-  const markControls = useAnimationControls();
-  const [bursting, setBursting] = useState(false);
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
 
   const buttonOpacity = useTransform(scrollYProgress, [0.85, 1], [0, 1]);
   const buttonY = useTransform(scrollYProgress, [0.85, 1], [16, 0]);
   const buttonPointerEvents = useTransform(scrollYProgress, (v) => (v > 0.9 ? "auto" : "none"));
-
-  const handleGetStarted = () => {
-    if (bursting) return;
-    setBursting(true);
-
-    // 1. Flare -- quick scale + brightness pulse on the whole mark (C +
-    // whichever value point is currently showing through it).
-    void markControls.start({
-      scale: [1, 1.08, 1],
-      filter: ["brightness(1)", "brightness(2)", "brightness(1)"],
-      transition: { duration: 0.2, ease: EASE },
-    });
-
-    // 2. Gold burst from the mark's actual on-screen center. Fire-and-forget
-    // -- we don't wait for the full ~800ms burst before starting the wipe.
-    const rect = markRef.current?.getBoundingClientRect();
-    const position = rect
-      ? { x: ((rect.left + rect.width / 2) / window.innerWidth) * 100, y: ((rect.top + rect.height / 2) / window.innerHeight) * 100 }
-      : { x: 50, y: 50 };
-
-    void confetti({
-      count: 90,
-      spread: 100,
-      startVelocity: 35,
-      gravity: 1.1,
-      decay: 0.9,
-      ticks: 90,
-      position,
-      colors: GOLD,
-      scalar: 1.1,
-      disableForReducedMotion: true,
-    });
-
-    // 3. Hand off to the teal wipe (components/transition-overlay.tsx) --
-    // timed so the user sees a good chunk of the burst before it's covered.
-    // flare (200ms) + partial burst (350ms) + wipe cover (480ms) ~= 1.03s,
-    // comfortably under the ~1.2s budget.
-    window.setTimeout(() => navigate("/dashboard"), 550);
-  };
 
   return (
     <section ref={sectionRef} className="relative bg-black" style={{ height: "300vh" }}>
@@ -209,11 +157,7 @@ export function CadenceMarkSection() {
           className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-400/10 blur-3xl"
         />
 
-        <motion.div
-          ref={markRef}
-          animate={markControls}
-          className="relative h-[380px] w-[380px] sm:h-[460px] sm:w-[460px] lg:h-[520px] lg:w-[520px]"
-        >
+        <div className="relative h-[380px] w-[380px] sm:h-[460px] sm:w-[460px] lg:h-[520px] lg:w-[520px]">
           <svg viewBox="0 0 400 400" className="h-full w-full overflow-visible">
             {SEGMENTS.map((seg, i) => (
               <CSegment key={seg.id} path={SEGMENT_PATHS[i]} progress={scrollYProgress} range={SEGMENT_RANGES[i]} />
@@ -223,16 +167,12 @@ export function CadenceMarkSection() {
           {POINTS.map((point, i) => (
             <ValuePoint key={point.heading} point={point} progress={scrollYProgress} range={SEGMENT_RANGES[i]} />
           ))}
-        </motion.div>
+        </div>
 
         <motion.div style={{ opacity: buttonOpacity, y: buttonY, pointerEvents: buttonPointerEvents }} className="mt-12">
-          <MotionButton
-            type="button"
-            onClick={handleGetStarted}
-            className="inline-flex h-14 items-center justify-center rounded-full bg-teal-400 px-10 text-lg font-semibold text-black shadow-[0_0_24px_-4px_rgba(45,212,191,0.5)] transition-shadow hover:bg-teal-300 hover:shadow-[0_0_36px_-2px_rgba(45,212,191,0.65)]"
-          >
+          <GetStartedButton className="inline-flex h-14 items-center justify-center rounded-full bg-teal-400 px-10 text-lg font-semibold text-black shadow-[0_0_24px_-4px_rgba(45,212,191,0.5)] transition-shadow hover:bg-teal-300 hover:shadow-[0_0_36px_-2px_rgba(45,212,191,0.65)]">
             Get started
-          </MotionButton>
+          </GetStartedButton>
         </motion.div>
       </div>
     </section>

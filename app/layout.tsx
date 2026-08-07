@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { BootIntro } from "@/components/BootIntro";
+import { GetStartedTransitionProvider } from "@/components/GetStartedTransition";
 import { PageTransition } from "@/components/page-transition";
-import { TransitionOverlayProvider } from "@/components/transition-overlay";
 
 // Two-family system: Space Grotesk for anything that has to announce
 // itself (headlines, section titles, the nav wordmark), Inter for
@@ -41,9 +41,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Provider wraps PageTransition, not the other way around -- it has
             to survive the pathname change it triggers, and PageTransition
             unmounts its previous-route content on every navigation. */}
-        <TransitionOverlayProvider>
+        <GetStartedTransitionProvider>
           <PageTransition>{children}</PageTransition>
-        </TransitionOverlayProvider>
+        </GetStartedTransitionProvider>
       </body>
     </html>
   );

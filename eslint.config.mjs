@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored third-party component source (installed via jsrepo from
+    // reactbits.dev) -- not code we authored, so it isn't held to this
+    // project's stricter custom rules (react-hooks purity/set-state-in-
+    // effect, no-explicit-any). Same convention as excluding a shadcn-style
+    // components/ui/ vendor directory.
+    "components/react-bits/**",
   ]),
 ]);
 

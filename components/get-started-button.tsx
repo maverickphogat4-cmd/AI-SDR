@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import type { MouseEvent, ReactNode } from "react";
-import { useGetStartedTransition } from "@/components/transition-overlay";
+import { useGetStartedTransition } from "@/components/GetStartedTransition";
 
 // Same hover/tap feel as MotionButton (components/motion-button.tsx), but
 // for a real <a> via next/link so prefetching, right-click "open in new
@@ -19,10 +19,11 @@ type GetStartedButtonProps = {
 
 /**
  * The single "Get started" trigger, used in the nav, the hero, and the
- * closing CTA section. A plain left-click is intercepted to play the wipe
- * transition (see transition-overlay.tsx) before navigating; every other
- * kind of click (middle-click, cmd/ctrl-click, etc.) falls through to the
- * underlying <Link> so "open in new tab" still behaves normally.
+ * closing CTA section. A plain left-click is intercepted to play the
+ * LightTunnel + SplitFlapText transition (see GetStartedTransition.tsx)
+ * before navigating; every other kind of click (middle-click, cmd/ctrl-click,
+ * etc.) falls through to the underlying <Link> so "open in new tab" still
+ * behaves normally.
  */
 export function GetStartedButton({ className, children }: GetStartedButtonProps) {
   const { navigate } = useGetStartedTransition();
