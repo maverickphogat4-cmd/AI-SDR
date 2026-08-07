@@ -2,6 +2,7 @@
 
 import { motion, type Variants } from "framer-motion";
 import { MotionButton } from "@/components/motion-button";
+import { EASE } from "@/lib/motion";
 import type { Prospect } from "@/lib/types";
 
 type FieldKey = keyof Omit<Prospect, "id">;
@@ -24,7 +25,7 @@ const cardVariants: Variants = {
   visible: (index: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, delay: index * 0.08, ease: "easeOut" },
+    transition: { duration: 0.4, delay: index * 0.08, ease: EASE },
   }),
   exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
 };

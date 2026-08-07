@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { MotionButton } from "@/components/motion-button";
+import { EASE } from "@/lib/motion";
 import type { GenerationResult, Prospect } from "@/lib/types";
 
 type ResultCardProps = {
@@ -32,7 +33,7 @@ export function ResultCard({ prospect, result, onSimulate }: ResultCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.4, ease: EASE }}
       className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:border-white/20"
     >
       <div className="mb-4 flex items-start justify-between gap-3">

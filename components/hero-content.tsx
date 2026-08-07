@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
-import { MotionLink } from "@/components/motion-link";
+import { GetStartedButton } from "@/components/get-started-button";
+import { EASE } from "@/lib/motion";
 
 // Parent orchestrates the stagger; each child just declares its own
 // hidden/visible state and inherits timing from here. ~80ms between
@@ -13,7 +14,7 @@ const containerVariants: Variants = {
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } },
 };
 
 export function HeroContent() {
@@ -51,12 +52,9 @@ export function HeroContent() {
       </motion.p>
 
       <motion.div variants={itemVariants} className="mt-10">
-        <MotionLink
-          href="/dashboard"
-          className="inline-flex h-12 items-center justify-center rounded-full bg-teal-400 px-8 text-base font-medium text-black shadow-[0_0_20px_-4px_rgba(45,212,191,0.5)] transition-shadow hover:bg-teal-300 hover:shadow-[0_0_30px_-2px_rgba(45,212,191,0.65)]"
-        >
+        <GetStartedButton className="inline-flex h-12 items-center justify-center rounded-full bg-teal-400 px-8 text-base font-medium text-black shadow-[0_0_20px_-4px_rgba(45,212,191,0.5)] transition-shadow hover:bg-teal-300 hover:shadow-[0_0_30px_-2px_rgba(45,212,191,0.65)]">
           Get started
-        </MotionLink>
+        </GetStartedButton>
       </motion.div>
     </motion.div>
   );
