@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { BootIntro } from "@/components/BootIntro";
 import { PageTransition } from "@/components/page-transition";
 import { TransitionOverlayProvider } from "@/components/transition-overlay";
 
@@ -30,6 +31,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* Site-wide, not landing-page-only: plays once per session
+            regardless of which route is opened first (a shared /dashboard
+            link included), then never again this session. It's a sibling,
+            not a wrapper -- the rest of the tree mounts normally underneath
+            it instead of waiting on it. */}
+        <BootIntro />
+
         {/* Provider wraps PageTransition, not the other way around -- it has
             to survive the pathname change it triggers, and PageTransition
             unmounts its previous-route content on every navigation. */}
