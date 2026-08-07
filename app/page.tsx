@@ -1,5 +1,4 @@
-import { ExplainerSection } from "@/components/explainer-section";
-import { FinalCtaSection } from "@/components/final-cta-section";
+import { CadenceMarkSection } from "@/components/cadence-mark-section";
 import { HeroContent } from "@/components/hero-content";
 import HeroScene from "@/components/hero-scene";
 import { SiteNav } from "@/components/site-nav";
@@ -34,8 +33,11 @@ export default function Home() {
         </main>
       </section>
 
-      <ExplainerSection />
-      <FinalCtaSection />
+      {/* Signature moment: the "C" mark illuminates in three scroll-pinned
+          segments, each paired with a value point, ending in its own
+          "Get started" (flare + gold burst) -- this is the page's closing
+          section, no separate CTA block after it. */}
+      <CadenceMarkSection />
     </div>
   );
 }
