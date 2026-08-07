@@ -1,5 +1,7 @@
 "use client";
 
+import { motion, type Variants } from "framer-motion";
+import { MotionButton } from "@/components/motion-button";
 import type { Prospect } from "@/lib/types";
 
 type FieldKey = keyof Omit<Prospect, "id">;
@@ -12,23 +14,45 @@ type ProspectCardProps = {
   canRemove: boolean;
 };
 
+// `custom={index}` feeds the numeric index into this variant function, so
+// each card's entrance is offset by ~80ms from the one before it. Delay
+// only applies to the enter animation (via the `visible` variant) -- the
+// `exit` variant has its own transition, so removing a card doesn't inherit
+// a stale stagger delay.
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (index: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, delay: index * 0.08, ease: "easeOut" },
+  }),
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+};
+
 /** One prospect's input card: identity fields + the three research inputs
  * the email-generation prompt (Stage 4) actually reads from. */
 export function ProspectCard({ prospect, index, onChange, onRemove, canRemove }: ProspectCardProps) {
   const set = (field: FieldKey) => (value: string) => onChange(prospect.id, field, value);
 
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition-colors focus-within:border-zinc-700">
+    <motion.div
+      custom={index}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:border-white/20 focus-within:border-white/20"
+    >
       <div className="mb-5 flex items-center justify-between">
         <h3 className="text-sm font-medium text-zinc-400">Prospect {index + 1}</h3>
         {canRemove && (
-          <button
+          <MotionButton
             type="button"
             onClick={() => onRemove(prospect.id)}
             className="text-xs text-zinc-500 transition-colors hover:text-red-400"
           >
             Remove
-          </button>
+          </MotionButton>
         )}
       </div>
 
@@ -56,9 +80,16 @@ export function ProspectCard({ prospect, index, onChange, onRemove, canRemove }:
         placeholder="Funding round, product launch, hiring push, etc."
         optional
       />
-    </div>
+    </motion.div>
   );
 }
+
+// Shared focus treatment: border eases to the accent color with a soft glow
+// (a spread box-shadow, not a hard outline) -- applied via plain Tailwind
+// transitions rather than framer, since a CSS-driven focus ring is both
+// simpler and snappier than animating it through JS.
+const FIELD_CLASSNAME =
+  "rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-teal-400 focus:shadow-[0_0_0_3px_rgba(45,212,191,0.15)]";
 
 function TextField({
   label,
@@ -79,7 +110,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-teal-400/60"
+        className={FIELD_CLASSNAME}
       />
     </label>
   );
@@ -108,7 +139,7 @@ function TextAreaField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={3}
-        className="resize-y rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-teal-400/60"
+        className={`resize-y ${FIELD_CLASSNAME}`}
       />
     </label>
   );

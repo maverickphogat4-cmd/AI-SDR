@@ -14,11 +14,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  /* Any --font-* key under @theme gets a matching Tailwind utility for
+     free -- this is what makes `font-heading` usable on h1/h2/etc below. */
+  --font-heading: var(--font-space-grotesk);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
