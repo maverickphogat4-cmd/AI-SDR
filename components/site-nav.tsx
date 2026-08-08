@@ -21,13 +21,11 @@ export function SiteNav() {
       <motion.div aria-hidden style={{ opacity: backgroundOpacity }} className="absolute inset-0 bg-black backdrop-blur-md" />
 
       <div className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-4 sm:px-10">
-        <Link href="/" className="font-heading text-lg font-medium tracking-tight text-white">
+        <Link href="/" className="font-heading text-lg font-bold tracking-tight text-white">
           Cadence
         </Link>
 
-        <GetStartedButton className="inline-flex h-10 items-center justify-center rounded-full bg-teal-400 px-5 text-sm font-medium text-black shadow-[0_0_16px_-4px_rgba(45,212,191,0.5)] transition-shadow hover:bg-teal-300 hover:shadow-[0_0_24px_-2px_rgba(45,212,191,0.65)]">
-          Get started
-        </GetStartedButton>
+        <GetStartedButton size="sm">Get started</GetStartedButton>
       </div>
     </nav>
   );

@@ -49,7 +49,7 @@ async function generateOne(prospect: Prospect): Promise<{ email?: string; tone?:
     if (result.error) return { error: result.error };
     return { email: result.email, tone: result.tone };
   } catch {
-    return { error: "Network error -- is the dev server running?" };
+    return { error: "Network error — is the dev server running?" };
   }
 }
 
@@ -155,7 +155,7 @@ export default function DashboardPage() {
           <p className="text-sm font-medium tracking-wide text-teal-400 uppercase">Dashboard</p>
           <h1 className="mt-2 font-heading text-3xl font-bold tracking-tight text-white">Add your prospects</h1>
           <p className="mt-2 max-w-2xl text-zinc-400">
-            Paste what you already know about each prospect -- their bio, a recent post, any company news.
+            Paste what you already know about each prospect, their bio, a recent post, any company news.
             The more specific the input, the more specific the email.
           </p>
         </header>

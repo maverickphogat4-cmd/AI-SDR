@@ -128,7 +128,7 @@ async function generateEmail(
     throw new Error("Claude declined to generate this email.");
   }
   if (response.stop_reason === "max_tokens") {
-    throw new Error("Response was cut off before finishing -- try again.");
+    throw new Error("Response was cut off before finishing, try again.");
   }
 
   const textBlock = response.content.find(
@@ -144,10 +144,10 @@ async function generateEmail(
 
 function describeError(err: unknown): string {
   if (err instanceof Anthropic.AuthenticationError) {
-    return "Anthropic API key was rejected -- check ANTHROPIC_API_KEY in .env.local.";
+    return "Anthropic API key was rejected — check ANTHROPIC_API_KEY in .env.local.";
   }
   if (err instanceof Anthropic.RateLimitError) {
-    return "Rate limited by the Anthropic API -- wait a moment and try again.";
+    return "Rate limited by the Anthropic API, wait a moment and try again.";
   }
   if (err instanceof Anthropic.APIError) {
     return `Anthropic API error (${err.status ?? "unknown"}): ${err.message}`;

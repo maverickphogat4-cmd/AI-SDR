@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { BootIntro } from "@/components/BootIntro";
 import { GetStartedTransitionProvider } from "@/components/GetStartedTransition";
 import { PageTransition } from "@/components/page-transition";
 
-// Two-family system: Space Grotesk for anything that has to announce
-// itself (headlines, section titles, the nav wordmark), Inter for
-// everything you actually read (body copy, labels, form inputs).
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-});
+// One variable font (weights 100-900) for everything, body and headings
+// alike -- not `next/font/google` (Geist isn't in that catalog; it's
+// Vercel's own font, distributed as the `geist` package, which is why this
+// is a `next/font/local` loader under the hood, not `next/font/google`).
+// Headings lean on the font's own heavy end (font-bold/font-extrabold +
+// tracking-tight) instead of a second family, so there's one voice at two
+// weights rather than two typefaces to keep in sync.
 
 export const metadata: Metadata = {
   title: "Cadence — AI SDR that remembers",
@@ -26,10 +21,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${GeistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         {/* Site-wide, not landing-page-only: plays once per session
             regardless of which route is opened first (a shared /dashboard

@@ -2,6 +2,7 @@ import { CadenceMarkSection } from "@/components/cadence-mark-section";
 import { ColorBendsBackground } from "@/components/ColorBendsBackground";
 import { HeroContent } from "@/components/hero-content";
 import { SiteNav } from "@/components/site-nav";
+import { StatCards } from "@/components/stat-cards";
 
 // This stays a Server Component -- only the ColorBends background and the
 // animated copy need to be Client Components. Keeping this file server-only
@@ -34,10 +35,13 @@ export default function Home() {
         </main>
       </section>
 
+      {/* "What Cadence does," in numbers -- a standard scroll-into-view
+          reveal, not tied to any pinned-scroll mechanism. */}
+      <StatCards />
+
       {/* Signature moment: the "C" mark illuminates in three scroll-pinned
-          segments, each paired with a value point, ending in its own
-          "Get started" -- this is the page's closing section, no separate
-          CTA block after it. */}
+          segments, ending in its own "Get started" -- this is the page's
+          closing section, no separate CTA block after it. */}
       <CadenceMarkSection />
     </div>
   );

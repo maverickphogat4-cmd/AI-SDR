@@ -29,32 +29,30 @@ export function HeroContent() {
           the text via -z-10 inside this already-positioned wrapper. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-12 left-1/2 -z-10 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-teal-400/20 blur-3xl"
+        className="pointer-events-none absolute top-12 left-1/2 -z-10 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-emerald-400/20 blur-3xl"
       />
 
       <motion.span
         variants={itemVariants}
-        className="mb-6 rounded-full border border-teal-400/30 bg-teal-400/10 px-4 py-1.5 text-xs font-medium tracking-wide text-teal-300 uppercase"
+        className="mb-6 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs font-medium tracking-wide text-emerald-300 uppercase"
       >
         Research-driven outreach
       </motion.span>
 
       <motion.h1
         variants={itemVariants}
-        className="max-w-3xl font-heading text-5xl font-bold tracking-tight text-white sm:text-6xl"
+        className="max-w-3xl font-heading text-5xl font-extrabold tracking-tight text-white sm:text-6xl"
       >
         AI SDR that remembers
       </motion.h1>
 
-      <motion.p variants={itemVariants} className="mt-6 max-w-xl text-lg leading-8 text-zinc-400">
-        Every email is grounded in what a prospect actually said and did -- not a template. Every follow-up
+      <motion.p variants={itemVariants} className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
+        Every email is grounded in what a prospect actually said and did, not a template. Every follow-up
         adjusts its tone based on whether they replied last time.
       </motion.p>
 
       <motion.div variants={itemVariants} className="mt-10">
-        <GetStartedButton className="inline-flex h-12 items-center justify-center rounded-full bg-teal-400 px-8 text-base font-medium text-black shadow-[0_0_20px_-4px_rgba(45,212,191,0.5)] transition-shadow hover:bg-teal-300 hover:shadow-[0_0_30px_-2px_rgba(45,212,191,0.65)]">
-          Get started
-        </GetStartedButton>
+        <GetStartedButton size="md">Get started</GetStartedButton>
       </motion.div>
     </motion.div>
   );

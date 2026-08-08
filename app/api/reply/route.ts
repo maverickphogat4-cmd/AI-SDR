@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const updated = await recordReply(body.name, body.replied);
   if (!updated) {
     return NextResponse.json(
-      { error: "No touch history found for this prospect yet -- generate an email first." },
+      { error: "No touch history found for this prospect yet — generate an email first." },
       { status: 404 }
     );
   }
