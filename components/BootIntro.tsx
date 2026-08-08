@@ -1,12 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { EASE } from "@/lib/motion";
+import { SignatureMoment } from "@/components/SignatureMoment";
 
 const BOOT_SEEN_KEY = "cadence-boot-seen";
-const FALLBACK_MS = 4000; // don't strand anyone behind a black screen if the video never fires onEnded
-const EXIT_DURATION_S = 0.35;
+// boot-intro.mp4 is ~10s at 1x, played at 2x below -- so it naturally ends
+// around 5s. This is a safety net for if onEnded never fires at all (not a
+// "trim the video short" timer), so it has to sit comfortably above that.
+const FALLBACK_MS = 7000;
 
 // `useSyncExternalStore` plumbing for "has this session already seen the
 // boot". There's nothing to actually subscribe to -- we only ever read this
@@ -32,7 +34,13 @@ function getBootSeenServerSnapshot(): boolean {
   return true;
 }
 
-type Stage = "playing" | "exiting" | "done";
+// playing: video fills the screen.
+// signature: video has ended -- the shared LightTunnel + SplitFlapText
+//   moment (see components/SignatureMoment.tsx) plays on top of it.
+// exiting: signature moment's hold finished -- AnimatePresence is fading it
+//   out (see onComplete/onExitComplete below).
+// done: nothing left to render -- the site underneath shows through.
+type Stage = "playing" | "signature" | "exiting" | "done";
 
 export function BootIntro() {
   const seen = useSyncExternalStore(subscribeToBootSeen, getBootSeenSnapshot, getBootSeenServerSnapshot);
@@ -49,9 +57,23 @@ export function BootIntro() {
     }
   }, []);
 
-  const finish = useCallback(() => {
+  // The video ending (normally, on error, or via the timeout below) hands
+  // off to the signature moment -- it does not reveal the site directly.
+  const finishVideo = useCallback(() => {
     clearFallback();
-    setStage((s) => (s === "playing" ? "exiting" : s));
+    setStage((s) => (s === "playing" ? "signature" : s));
+  }, [clearFallback]);
+
+  // Explicit "Skip" click bypasses the signature moment too -- someone
+  // reaching for Skip wants out immediately, not one more 1.5s beat.
+  const skipAll = useCallback(() => {
+    clearFallback();
+    try {
+      sessionStorage.setItem(BOOT_SEEN_KEY, "1");
+    } catch {
+      // ignore -- worst case it replays on the next load, not worth blocking on
+    }
+    setStage("done");
   }, [clearFallback]);
 
   // playbackRate + fallback timer. Runs whenever we're actually in the
@@ -65,9 +87,9 @@ export function BootIntro() {
       videoRef.current.playbackRate = 2.0;
     }
 
-    fallbackTimer.current = setTimeout(finish, FALLBACK_MS);
+    fallbackTimer.current = setTimeout(finishVideo, FALLBACK_MS);
     return clearFallback;
-  }, [seen, stage, finish, clearFallback]);
+  }, [seen, stage, finishVideo, clearFallback]);
 
   // Mark the session as "seen" only once the sequence actually concludes --
   // deliberately NOT proactively at mount. Writing at mount is what breaks
@@ -76,8 +98,9 @@ export function BootIntro() {
   // pass's write would already be sitting in sessionStorage by the time the
   // second, real pass re-checks `seen`, making it think the boot had
   // already played and skip it outright. Writing here instead -- well after
-  // that initial double-mount has settled, triggered by a real playback
-  // event -- sidesteps that entirely.
+  // that initial double-mount has settled, triggered by the signature
+  // moment's hold finishing -- sidesteps that entirely. (The explicit Skip
+  // path writes it directly in skipAll above, for the same reason.)
   useEffect(() => {
     if (stage !== "exiting") return;
     try {
@@ -90,41 +113,38 @@ export function BootIntro() {
   if (seen || stage === "done") return null;
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black"
-      style={{ transformOrigin: "center" }}
-      // CRT power-off: squish vertically to a thin bright line, hold it
-      // briefly, then that line fades to nothing -- ~350ms total.
-      animate={
-        stage === "exiting"
-          ? { scaleY: [1, 0.015, 0.015], opacity: [1, 1, 0] }
-          : { scaleY: 1, opacity: 1 }
-      }
-      transition={stage === "exiting" ? { duration: EXIT_DURATION_S, times: [0, 0.55, 1], ease: EASE } : undefined}
-      onAnimationComplete={() => {
-        // Also fires for the trivial "playing" resting-state animation on
-        // mount -- only act on the real exit.
-        if (stage === "exiting") setStage("done");
-      }}
-    >
-      <video
-        ref={videoRef}
-        src="/boot-intro.mp4"
-        autoPlay
-        muted
-        playsInline
-        onEnded={finish}
-        onError={finish}
-        className="h-auto max-h-[80vh] w-full max-w-3xl object-contain"
-      />
+    <>
+      {stage === "playing" && (
+        <div className="fixed inset-0 z-50 overflow-hidden bg-black">
+          <video
+            ref={videoRef}
+            src="/boot-intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            onEnded={finishVideo}
+            onError={finishVideo}
+            // Fills the viewport edge-to-edge -- object-cover crops rather
+            // than letterboxes, so there's no visible black border around
+            // the frame regardless of the video's own aspect ratio.
+            className="absolute inset-0 h-full w-full object-cover"
+          />
 
-      <button
-        type="button"
-        onClick={finish}
-        className="absolute right-6 bottom-6 text-xs text-white/30 transition-colors hover:text-white/60"
-      >
-        Skip
-      </button>
-    </motion.div>
+          <button
+            type="button"
+            onClick={skipAll}
+            className="absolute right-6 bottom-6 z-10 text-xs text-white/30 transition-colors hover:text-white/60"
+          >
+            Skip
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence onExitComplete={() => setStage("done")}>
+        {stage === "signature" && (
+          <SignatureMoment key="boot-signature" onComplete={() => setStage("exiting")} />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
