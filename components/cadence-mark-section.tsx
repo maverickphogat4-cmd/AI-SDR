@@ -146,12 +146,14 @@ export function CadenceMarkSection() {
   const buttonPointerEvents = useTransform(scrollYProgress, (v) => (v > 0.9 ? "auto" : "none"));
 
   return (
-    <section ref={sectionRef} className="relative bg-black" style={{ height: "300vh" }}>
+    // z-10, no bg of its own -- the page-wide ColorBendsBackground (z-0,
+    // see app/page.tsx) shows through here on purpose; z-10 is what keeps
+    // this section's own content painting above it instead of the two
+    // fighting for the same stacking level.
+    <section ref={sectionRef} className="relative z-10" style={{ height: "300vh" }}>
       <div className="sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden">
-        {/* Ambient glow instead of a second live particle field -- the hero's
-            Three.js canvas is scoped to the hero section only, so there's no
-            competing motion here to fight with; this just keeps the backdrop
-            from being flat black behind the mark. */}
+        {/* Ambient glow behind the mark -- extra warmth on top of the page's
+            own ColorBends background, not a replacement for it. */}
         <div
           aria-hidden
           className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-400/10 blur-3xl"

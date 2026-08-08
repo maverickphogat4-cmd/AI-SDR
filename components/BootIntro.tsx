@@ -15,7 +15,7 @@ const FALLBACK_MS = 7000;
 // once, right after hydration -- but the hook still gives us the safe
 // "render the server value first, then correct to the real client value"
 // behavior for free, without a setState-in-effect footgun (see the same
-// pattern for prefers-reduced-motion in components/hero-scene.tsx).
+// pattern for the Page Visibility API in components/ColorBendsBackground.tsx).
 function subscribeToBootSeen() {
   return () => {};
 }

@@ -56,7 +56,7 @@ async function generateOne(prospect: Prospect): Promise<{ email?: string; tone?:
 export default function DashboardPage() {
   // Lazy initializer: crypto.randomUUID() is impure, and a lazy `useState`
   // initializer is the one place React guarantees it runs exactly once
-  // per mount (see the same pattern/reasoning in components/hero-scene.tsx).
+  // per mount.
   const [prospects, setProspects] = useState<Prospect[]>(() => [createEmptyProspect()]);
   const [results, setResults] = useState<Record<string, GenerationResult>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);

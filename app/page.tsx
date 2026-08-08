@@ -1,25 +1,26 @@
 import { CadenceMarkSection } from "@/components/cadence-mark-section";
+import { ColorBendsBackground } from "@/components/ColorBendsBackground";
 import { HeroContent } from "@/components/hero-content";
-import HeroScene from "@/components/hero-scene";
 import { SiteNav } from "@/components/site-nav";
 
-// This stays a Server Component -- only the Three.js scene and the
+// This stays a Server Component -- only the ColorBends background and the
 // animated copy need to be Client Components. Keeping this file server-only
 // means the page shell ships without waiting on the WebGL or motion bundles.
 export default function Home() {
   return (
     <div className="relative flex flex-1 flex-col bg-black">
+      {/* Constant, looping ambient background for the whole page (not just
+          the hero) -- fixed at z-0, see ColorBendsBackground for why every
+          section below stacks above it without extra z-index gymnastics. */}
+      <ColorBendsBackground />
+
       <SiteNav />
 
       {/* Hero: the only section that needs its own overflow-hidden + full
-          viewport height, since it's what pins the absolutely-positioned
-          Three.js canvas and vignette. Everything below is normal document
-          flow, which is what makes the page scrollable at all. */}
+          viewport height, since it's what pins the local vignette. Everything
+          below is normal document flow, which is what makes the page
+          scrollable at all. */}
       <section className="relative flex min-h-screen flex-col overflow-hidden">
-        <div className="absolute inset-0">
-          <HeroScene />
-        </div>
-
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -35,8 +36,8 @@ export default function Home() {
 
       {/* Signature moment: the "C" mark illuminates in three scroll-pinned
           segments, each paired with a value point, ending in its own
-          "Get started" (flare + gold burst) -- this is the page's closing
-          section, no separate CTA block after it. */}
+          "Get started" -- this is the page's closing section, no separate
+          CTA block after it. */}
       <CadenceMarkSection />
     </div>
   );
