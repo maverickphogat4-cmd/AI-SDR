@@ -2,6 +2,7 @@
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
+import { CadenceWordmark } from "@/components/cadence-wordmark";
 import { GetStartedButton } from "@/components/get-started-button";
 
 // Interpolated straight from scroll position via a MotionValue, not a
@@ -21,8 +22,8 @@ export function SiteNav() {
       <motion.div aria-hidden style={{ opacity: backgroundOpacity }} className="absolute inset-0 bg-black backdrop-blur-md" />
 
       <div className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-4 sm:px-10">
-        <Link href="/" className="font-heading text-lg font-bold tracking-tight text-white">
-          Cadence
+        <Link href="/" aria-label="Cadence, back to top">
+          <CadenceWordmark heightPx={28} />
         </Link>
 
         <GetStartedButton size="sm">Get started</GetStartedButton>
