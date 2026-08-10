@@ -97,12 +97,13 @@ function CSegment({
   );
 }
 
-/** One value point: flies in (x + opacity + blur-to-sharp) beside the C,
- * holds, then hands off to the next. All three share the same slot --
- * only the one whose window contains the current scroll progress is
- * visible. Driven directly off scroll position (not whileInView), so it's
- * fully reversible: scrolling back up un-plays it, same as the C's own
- * illumination. */
+/** One value point: flies in (x + opacity + blur-to-sharp), holds, then
+ * hands off to the next. All three share the same slot (absolute inset-0
+ * within a single sized wrapper, see the caller) -- only the one whose
+ * window contains the current scroll progress is visible. Driven directly
+ * off scroll position (not whileInView/AnimatePresence), so it's fully
+ * reversible and continuously scroll-scrubbed: scrolling back up un-plays
+ * it, same as the C's own illumination. */
 function ValuePoint({
   point,
   progress,
@@ -117,30 +118,39 @@ function ValuePoint({
   const keyframes = [start, start + span * 0.15, end - span * 0.15, end];
 
   const opacity = useTransform(progress, keyframes, [0, 1, 1, 0], { ease: [easeFn, easeFn, easeFn] });
-  const x = useTransform(progress, keyframes, [-24, 0, 0, 16], { ease: [easeFn, easeFn, easeFn] });
+  const x = useTransform(progress, keyframes, [-20, 0, 0, 20], { ease: [easeFn, easeFn, easeFn] });
   const blurPx = useTransform(progress, keyframes, [8, 0, 0, 6], { ease: [easeFn, easeFn, easeFn] });
   const filter = useMotionTemplate`blur(${blurPx}px)`;
 
   return (
     <motion.div
       style={{ opacity, x, filter }}
-      className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center lg:items-start lg:text-left"
+      className="pointer-events-none absolute inset-0 flex flex-col justify-center text-left"
     >
       <h3 className="font-heading text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{point.heading}</h3>
-      <p className="mt-3 max-w-sm text-base leading-relaxed text-zinc-300">{point.body}</p>
+      <p className="mt-6 text-base leading-relaxed text-zinc-300">{point.body}</p>
     </motion.div>
   );
 }
 
 /**
- * Signature scroll moment: a 300vh section pins the "C" mark + a value-point
- * text slot center-screen (sticky trick -- see the wrapping div below) while
- * three arcs light up in sequence, one per scroll third, each paired with
- * the value point that flies in beside it. The closing "Get started" uses
- * the same GetStartedButton (and the same LightTunnel + SplitFlapText
- * transition) as every other one on the site -- this section no longer has
- * its own bespoke click handler. Its label runs through TextPressure (see
- * the button JSX below) as this section's one extra flourish.
+ * Signature scroll moment: a 300vh section pins a single full-viewport-
+ * height flex ROW (sticky trick -- see the wrapping div below) split into
+ * two equal flex-1 halves: the "C" mark centered in the left half, the
+ * active value point centered in the right half. Both halves are
+ * positioned purely by that flex row (items-center on the row handles
+ * vertical centering, flex-1 + justify-center on each half handles
+ * horizontal) -- no absolute positioning or hardcoded top/left offsets are
+ * used to PLACE either one, which is what previously let the C clip under
+ * the nav and the text jam against the right edge. Three arcs light up in
+ * sequence as the section scrolls, one per scroll third, each paired with
+ * the value point that fades in on the right; both halves' POSITIONS never
+ * move, only their content's opacity/glow does. The closing "Get started"
+ * (floating, bottom-center of the same sticky row) uses the same
+ * GetStartedButton (and the same LightTunnel + SplitFlapText transition) as
+ * every other one on the site -- this section no longer has its own
+ * bespoke click handler. Its label runs through TextPressure as this
+ * section's one extra flourish.
  */
 export function CadenceMarkSection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -157,50 +167,59 @@ export function CadenceMarkSection() {
     // this section's own content painting above it instead of the two
     // fighting for the same stacking level.
     <section ref={sectionRef} className="relative z-10" style={{ height: "300vh" }}>
-      <div className="sticky top-0 flex h-screen w-full flex-col items-center justify-center overflow-hidden px-6">
-        {/* Ambient glow behind the mark -- extra warmth on top of the page's
-            own ColorBends background, not a replacement for it. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/10 blur-3xl"
-        />
-
-        <div className="flex flex-col items-center gap-10 lg:flex-row lg:justify-center lg:gap-16">
-          <div className="relative h-[320px] w-[320px] shrink-0 sm:h-[400px] sm:w-[400px] lg:h-[440px] lg:w-[440px]">
+      <div className="sticky top-0 flex h-screen w-full items-center justify-center gap-16 px-16">
+        {/* LEFT half: the C, and nothing else. items-center (on the row
+            above) + justify-center (here) is ALL that positions it -- no
+            overflow-hidden on any ancestor, so the glow's blur filter is
+            never clipped. */}
+        <div className="flex flex-1 items-center justify-center">
+          {/* clamp(...) caps the C (including its own glow, which sits
+              inset-0 on this same box) at 60vh tall, so on any realistic
+              viewport it sits well clear of both the nav above and the
+              screen edge below -- never touches either. */}
+          <div className="relative h-[clamp(200px,60vh,480px)] w-[clamp(200px,60vh,480px)]">
+            <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-emerald-400/10 blur-3xl" />
             <svg viewBox="0 0 400 400" className="h-full w-full overflow-visible">
               {SEGMENTS.map((seg, i) => (
                 <CSegment key={seg.id} path={SEGMENT_PATHS[i]} progress={scrollYProgress} range={SEGMENT_RANGES[i]} />
               ))}
             </svg>
           </div>
+        </div>
 
-          {/* Value-point text slot, beside the C -- the same "one shared
-              slot, cross-fade" trick as the arcs' scroll sync, just scoped
-              to this column instead of the whole viewport. The blurred dark
-              backdrop is the "text-zone vignette" for contrast over the
-              moving background, separate from the page-wide one. Fixed
-              pixel widths, not w-full: this row's own width is itself
-              shrink-to-fit (its parent doesn't stretch it), and a
-              percentage-width flex child inside a shrink-to-fit container
-              is a classic circular-sizing bug that resolves to 0 width. */}
-          <div className="relative h-[160px] w-[280px] sm:w-[320px] lg:h-[200px] lg:w-[360px]">
-            <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 rounded-[2rem] bg-black/30 blur-2xl" />
+        {/* RIGHT half: the active value point, vertically centered at the
+            same height as the C (both are centered by the same row). */}
+        <div className="flex flex-1 flex-col justify-center">
+          {/* This inner box is what the three ValuePoints stack inside via
+              absolute inset-0 for their scroll-scrubbed cross-fade -- it
+              needs its own explicit min-height because a box whose only
+              content is absolutely-positioned children has nothing left in
+              normal flow to size itself by, and would otherwise collapse to
+              0 height. max-w-[28rem] keeps lines from stretching too wide. */}
+          <div className="relative min-h-[180px] w-full max-w-[28rem]">
             {POINTS.map((point, i) => (
               <ValuePoint key={point.heading} point={point} progress={scrollYProgress} range={SEGMENT_RANGES[i]} />
             ))}
           </div>
         </div>
 
-        <motion.div style={{ opacity: buttonOpacity, y: buttonY, pointerEvents: buttonPointerEvents }} className="mt-12">
+        {/* Floating CTA, not a third flex participant: absolute positioning
+            takes it out of flow entirely, so it has zero effect on the two
+            flex-1 halves' equal split above. */}
+        <motion.div
+          style={{ opacity: buttonOpacity, y: buttonY, pointerEvents: buttonPointerEvents }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2"
+        >
           <GetStartedButton size="lg">
             {/* TextPressure wants an explicitly-sized container (it reads
-                its own bounding box to compute font size), not the button's
-                natural content-sized width -- so this is a fixed w/h box
-                sitting inside the pill instead of plain text. Scaled well
-                down from the component's own demo sizing (which assumes a
-                few hundred px of height) to fit a button, and only the
-                weight axis is left on: Geist Sans is a weight-only variable
-                font, so width/italic pressure would just be inert.
+                its own bounding box to compute font size), not the
+                button's natural content-sized width -- so this is a fixed
+                w/h box sitting inside the pill instead of plain text.
+                Scaled well down from the component's own demo sizing
+                (which assumes a few hundred px of height) to fit a button,
+                and only the weight axis is left on: Geist Sans is a
+                weight-only variable font, so width/italic pressure would
+                just be inert.
 
                 Never use a plain ASCII space between "Get" and "started"
                 below: the component wraps each character in its own

@@ -2,7 +2,14 @@
 
 import { motion, type Variants } from "framer-motion";
 import { GetStartedButton } from "@/components/get-started-button";
+import GradientText from "@/components/react-bits/GradientText";
 import { EASE } from "@/lib/motion";
+
+// Teal -> teal -> lime. GradientText defaults to yoyo=true (ping-pongs
+// forward then back rather than looping continuously), so unlike a
+// continuous loop this doesn't need matching first/last stops to avoid a
+// seam -- the reverse pass retraces the same path.
+const HEADLINE_GRADIENT = ["#10B981", "#10B981", "#84CC16"];
 
 // Parent orchestrates the stagger; each child just declares its own
 // hidden/visible state and inherits timing from here. ~80ms between
@@ -41,9 +48,15 @@ export function HeroContent() {
 
       <motion.h1
         variants={itemVariants}
-        className="max-w-3xl font-heading text-5xl font-extrabold tracking-tight text-white sm:text-6xl"
+        className="max-w-3xl font-heading text-5xl font-extrabold tracking-tight sm:text-6xl"
       >
-        AI SDR that remembers
+        {/* Size/weight/font/center-alignment all still come from the h1
+            above -- GradientText's own CSS was patched (see
+            components/react-bits/GradientText.css) to inherit font-size and
+            font-weight instead of overriding them with its own defaults, so
+            only the fill (solid white -> animated gradient) actually
+            changes here. */}
+        <GradientText colors={HEADLINE_GRADIENT}>AI SDR that remembers</GradientText>
       </motion.h1>
 
       <motion.p variants={itemVariants} className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
