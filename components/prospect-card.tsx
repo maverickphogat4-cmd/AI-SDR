@@ -27,11 +27,15 @@ const cardVariants: Variants = {
     y: 0,
     transition: { duration: 0.4, delay: index * 0.08, ease: EASE },
   }),
-  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2, ease: EASE } },
 };
 
 /** One prospect's input card: identity fields + the three research inputs
- * the email-generation prompt (Stage 4) actually reads from. */
+ * the email-generation prompt (Stage 4) actually reads from. Solid-ish dark
+ * glass (bg-black/60 + backdrop-blur-md), not the landing page's much more
+ * transparent bg-white/5 -- this page has a busy animated background behind
+ * it (see DashboardTopographyBackground) and is text/input-dense, so it
+ * needs a heavier fill to stay comfortably readable while typing. */
 export function ProspectCard({ prospect, index, onChange, onRemove, canRemove }: ProspectCardProps) {
   const set = (field: FieldKey) => (value: string) => onChange(prospect.id, field, value);
 
@@ -42,9 +46,9 @@ export function ProspectCard({ prospect, index, onChange, onRemove, canRemove }:
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors hover:border-white/20 focus-within:border-white/20"
+      className="rounded-2xl border border-white/10 bg-black/60 p-6 backdrop-blur-md transition-colors hover:border-white/20 focus-within:border-white/20"
     >
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <h3 className="text-sm font-medium text-zinc-400">Prospect {index + 1}</h3>
         {canRemove && (
           <MotionButton
@@ -88,9 +92,11 @@ export function ProspectCard({ prospect, index, onChange, onRemove, canRemove }:
 // Shared focus treatment: border eases to the accent color with a soft glow
 // (a spread box-shadow, not a hard outline) -- applied via plain Tailwind
 // transitions rather than framer, since a CSS-driven focus ring is both
-// simpler and snappier than animating it through JS.
+// simpler and snappier than animating it through JS. Accent is #10B981
+// (emerald-500), matching the site's accent everywhere else -- these inputs
+// used to glow teal-400, a leftover from before that rebrand.
 const FIELD_CLASSNAME =
-  "rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-teal-400 focus:shadow-[0_0_0_3px_rgba(45,212,191,0.15)]";
+  "rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-emerald-500 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
 
 function TextField({
   label,
