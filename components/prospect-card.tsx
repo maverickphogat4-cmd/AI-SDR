@@ -96,7 +96,7 @@ export function ProspectCard({ prospect, index, onChange, onRemove, canRemove }:
 // (emerald-500), matching the site's accent everywhere else -- these inputs
 // used to glow teal-400, a leftover from before that rebrand.
 const FIELD_CLASSNAME =
-  "rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-emerald-500 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
+  "font-sans rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-emerald-500 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.15)]";
 
 function TextField({
   label,
@@ -111,7 +111,7 @@ function TextField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-zinc-500">{label}</span>
+      <span className="font-sans text-xs font-medium text-zinc-500">{label}</span>
       <input
         type="text"
         value={value}
@@ -138,7 +138,7 @@ function TextAreaField({
 }) {
   return (
     <label className="mt-4 flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-zinc-500">
+      <span className="font-sans text-xs font-medium text-zinc-500">
         {label} {optional && <span className="text-zinc-600">(optional)</span>}
       </span>
       <textarea

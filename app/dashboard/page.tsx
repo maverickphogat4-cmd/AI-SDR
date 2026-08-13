@@ -6,6 +6,7 @@ import { useState } from "react";
 import { DashboardTopographyBackground } from "@/components/DashboardTopographyBackground";
 import { MotionButton } from "@/components/motion-button";
 import { ProspectCard } from "@/components/prospect-card";
+import ShinyText from "@/components/react-bits/ShinyText";
 import { ResultCard } from "@/components/result-card";
 import { MAX_PROSPECTS, type GenerationResult, type Prospect } from "@/lib/types";
 import { EASE } from "@/lib/motion";
@@ -160,20 +161,40 @@ export default function DashboardPage() {
             ← Cadence
           </Link>
 
-          <header className="mt-6 mb-12">
-            <p className="text-sm font-medium tracking-wide text-emerald-400 uppercase">Dashboard</p>
-            {/* font-extrabold, not the semibold a plain "professional" pass
-                might reach for by default -- matches the hero h1's own
-                weight (components/hero-content.tsx) so this page reads as
-                the same product as the landing page, not a lighter-weight
-                admin screen bolted onto it. */}
-            <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Add your prospects
-            </h1>
-            <p className="mt-3 max-w-2xl leading-relaxed text-zinc-400">
-              Paste what you already know about each prospect, their bio, a recent post, any company news.
-              The more specific the input, the more specific the email.
-            </p>
+          <header className="relative mt-6 mb-12">
+            {/* Soft dark scrim behind the header text only -- the eyebrow/
+                headline/subtext sit directly over the moving Topography
+                background (no glass card here), and ShinyText's emerald fill
+                has less natural contrast against the background's own
+                emerald contour lines than the plain white it replaces. Blurred
+                rather than a hard-edged box, same idea as the hero's glow-
+                behind-headline treatment (components/hero-content.tsx), just
+                dark instead of colored. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -inset-x-8 -inset-y-6 z-0 rounded-[2rem] bg-black/45 blur-2xl"
+            />
+
+            <div className="relative z-10">
+              <p className="font-sans text-sm font-medium tracking-wide text-emerald-400 uppercase">Dashboard</p>
+              {/* font-extrabold, not the semibold a plain "professional" pass
+                  might reach for by default -- matches the hero h1's own
+                  weight (components/hero-content.tsx) so this page reads as
+                  the same product as the landing page, not a lighter-weight
+                  admin screen bolted onto it. */}
+              <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">
+                {/* ShinyText controls its own fill (base color + sweeping
+                    shine) via background-clip, so a text-color utility on the
+                    h1 itself would be a no-op -- size/weight/tracking/font
+                    still come from the h1, same inheritance pattern as
+                    GradientText on the landing hero. */}
+                <ShinyText text="Add your prospects" color="#10B981" />
+              </h1>
+              <p className="font-sans mt-3 max-w-2xl leading-relaxed text-zinc-400">
+                Paste what you already know about each prospect, their bio, a recent post, any company news.
+                The more specific the input, the more specific the email.
+              </p>
+            </div>
           </header>
         </motion.div>
 
