@@ -6,7 +6,9 @@ import { useState } from "react";
 import { DashboardTopographyBackground } from "@/components/DashboardTopographyBackground";
 import { MotionButton } from "@/components/motion-button";
 import { ProspectCard } from "@/components/prospect-card";
+import { ProspectsFerrofluidAccent } from "@/components/ProspectsFerrofluidAccent";
 import ShinyText from "@/components/react-bits/ShinyText";
+import TextPressure from "@/components/react-bits/TextPressure";
 import { ResultCard } from "@/components/result-card";
 import { MAX_PROSPECTS, type GenerationResult, type Prospect } from "@/lib/types";
 import { EASE } from "@/lib/motion";
@@ -62,6 +64,10 @@ export default function DashboardPage() {
   const [prospects, setProspects] = useState<Prospect[]>(() => [createEmptyProspect()]);
   const [results, setResults] = useState<Record<string, GenerationResult>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // TextPressure only mounts on hover (see the button below) -- gated on
+  // its own state rather than relying on CSS :hover so the component (and
+  // its own rAF loop) simply doesn't exist most of the time.
+  const [isGenerateHovered, setIsGenerateHovered] = useState(false);
 
   const addProspect = () => {
     setProspects((prev) => (prev.length >= MAX_PROSPECTS ? prev : [...prev, createEmptyProspect()]));
@@ -198,45 +204,99 @@ export default function DashboardPage() {
           </header>
         </motion.div>
 
-        <div className="flex flex-col gap-6">
-          <AnimatePresence>
-            {prospects.map((prospect, index) => (
-              <ProspectCard
-                key={prospect.id}
-                prospect={prospect}
-                index={index}
-                onChange={updateProspect}
-                onRemove={removeProspect}
-                canRemove={prospects.length > 1}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        {/* Single shared Ferrofluid accent behind this whole work area (card
+            list + add/generate row) -- see ProspectsFerrofluidAccent for why
+            it's one instance here, not one per ProspectCard. `relative` on
+            this wrapper is what lets the accent's `absolute inset-0` size
+            itself to the actual (variable-height) content below, so it
+            keeps covering the full area as more prospects are added without
+            ever needing a second instance. */}
+        <div className="relative">
+          <ProspectsFerrofluidAccent />
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8">
-          <div className="flex items-center gap-3">
-            <MotionButton
-              type="button"
-              onClick={addProspect}
-              disabled={prospects.length >= MAX_PROSPECTS}
-              className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-300 backdrop-blur-sm transition-colors hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              + Add prospect
-            </MotionButton>
-            <span className="text-sm text-zinc-500">
-              {prospects.length}/{MAX_PROSPECTS} prospects
-            </span>
+          <div className="relative z-10 flex flex-col gap-6">
+            <AnimatePresence>
+              {prospects.map((prospect, index) => (
+                <ProspectCard
+                  key={prospect.id}
+                  prospect={prospect}
+                  index={index}
+                  onChange={updateProspect}
+                  onRemove={removeProspect}
+                  canRemove={prospects.length > 1}
+                />
+              ))}
+            </AnimatePresence>
           </div>
 
-          <MotionButton
-            type="button"
-            onClick={handleGenerate}
-            disabled={!canGenerate || isSubmitting}
-            title={canGenerate ? undefined : "Fill in name, company, bio, and a recent post for every prospect"}
-            className="rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold text-black shadow-[0_0_20px_-4px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_-2px_rgba(16,185,129,0.65)] disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 disabled:shadow-none"
-          >
-            {isSubmitting ? "Generating..." : "Generate emails"}
-          </MotionButton>
+          <div className="relative z-10 mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-8">
+            <div className="flex items-center gap-3">
+              <MotionButton
+                type="button"
+                onClick={addProspect}
+                disabled={prospects.length >= MAX_PROSPECTS}
+                className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-300 backdrop-blur-sm transition-colors hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                + Add prospect
+              </MotionButton>
+              <span className="text-sm text-zinc-500">
+                {prospects.length}/{MAX_PROSPECTS} prospects
+              </span>
+            </div>
+
+            <MotionButton
+              type="button"
+              onClick={handleGenerate}
+              onHoverStart={() => setIsGenerateHovered(true)}
+              onHoverEnd={() => setIsGenerateHovered(false)}
+              disabled={!canGenerate || isSubmitting}
+              title={canGenerate ? undefined : "Fill in name, company, bio, and a recent post for every prospect"}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-8 py-3 text-sm font-semibold text-black shadow-[0_0_20px_-4px_rgba(16,185,129,0.5)] transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_-2px_rgba(16,185,129,0.65)] disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 disabled:shadow-none"
+            >
+              {isSubmitting ? (
+                "Generating..."
+              ) : isGenerateHovered ? (
+                /* TextPressure mounted only while hovered (and, since a
+                   disabled button never fires hover events, never while
+                   submitting either) -- not permanently, unlike the same
+                   component's other use on the landing page's closing CTA
+                   (components/cadence-mark-section.tsx). That page has one
+                   background canvas; this one already runs Topography plus
+                   the Ferrofluid accent above and is a form people are
+                   actively typing into, so TextPressure's own always-on
+                   per-character rAF loop only gets to run for as long as
+                   someone's cursor is actually sitting on the button.
+                   Fixed-size box for the same reason as that other usage:
+                   TextPressure reads its own bounding box to size its font,
+                   not the button's natural content width. Renders
+                   uppercase ("GENERATE EMAILS") -- a vendor CSS default,
+                   same as "GET STARTED" on the closing CTA, so it matches
+                   an effect already established elsewhere on the site. */
+                <span className="relative inline-block h-5 w-[124px]">
+                  <TextPressure
+                    // A plain ASCII space between words collapses away
+                    // under TextPressure's per-character span rendering
+                    // (see the same note on the landing page's closing CTA,
+                    // components/cadence-mark-section.tsx) -- non-breaking
+                    // space is what actually keeps the gap.
+                    text={"Generate emails"}
+                    fontFamily="GeistSans"
+                    fontUrl=""
+                    width={false}
+                    weight
+                    italic={false}
+                    alpha={false}
+                    flex={false}
+                    scale={false}
+                    minFontSize={14}
+                    textColor="#000000"
+                  />
+                </span>
+              ) : (
+                "Generate emails"
+              )}
+            </MotionButton>
+          </div>
         </div>
 
         {hasResults && (
