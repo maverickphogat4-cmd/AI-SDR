@@ -32,7 +32,7 @@ const MODEL = "gemini-flash-latest";
 // on what lib/memory.ts remembers about this prospect. Everything upstream
 // (the form, the JSON store) exists to feed this instruction.
 const SYSTEM_INSTRUCTION = `You are an SDR (sales development rep) writing cold outreach emails on behalf of the user. Every email must:
-- Be 3-4 sentences, plain text -- no signature block.
+- Be 3-4 sentences and stay under about 120 words total, plain text -- no signature block. Keep it short on purpose: brevity here also keeps you well clear of the response length limit.
 - Reference exactly ONE specific, concrete fact drawn from the prospect's bio, their recent post, or the company news -- name the actual detail (what the post was actually about, the specific news item, etc.), not a vague paraphrase. Pick whichever fact is most specific and recent. Do not reference more than one fact, and never invent a fact that wasn't given to you.
 - Sound human and specific, not like a generic template: no "I hope this email finds you well", no "reaching out because", no "synergy", no exclamation-point enthusiasm, no filler.
 - End with a single, low-friction ask (a short question or a 15-minute chat), not a hard pitch.
@@ -135,10 +135,13 @@ async function generateEmail(
     throw new Error(`Gemini blocked this request (${response.promptFeedback.blockReason}).`);
   }
 
-  const finishReason = response.candidates?.[0]?.finishReason;
+  const candidate = response.candidates?.[0];
+  const finishReason = candidate?.finishReason;
+
+  // Each of these gets its own distinct message -- the point is that "cut
+  // off" only ever fires for a genuine MAX_TOKENS, not as a catch-all for
+  // every other way an empty/malformed response can show up below.
   if (finishReason === FinishReason.MAX_TOKENS) {
-    // Caught here, not left to surface as a JSON.parse syntax error below --
-    // a truncated response is still valid text, just not valid JSON.
     throw new Error("Response was cut off before finishing, try again.");
   }
   if (
@@ -148,8 +151,32 @@ async function generateEmail(
   ) {
     throw new Error("Gemini declined to generate this email.");
   }
+  if (!candidate) {
+    throw new Error("Gemini returned no result for this prospect, try again.");
+  }
 
-  const parsed = JSON.parse(response.text()) as { subject: string; tone: string; email: string };
+  let text: string;
+  try {
+    text = response.text();
+  } catch (err) {
+    // EnhancedGenerateContentResponse.text() itself throws for a couple of
+    // response shapes not already covered by the checks above -- surface
+    // its own message rather than letting it propagate unlabeled.
+    throw new Error(err instanceof Error ? err.message : "Gemini returned an unreadable response, try again.");
+  }
+  if (!text.trim()) {
+    throw new Error("Gemini returned an empty response, try again.");
+  }
+
+  let parsed: { subject: string; tone: string; email: string };
+  try {
+    parsed = JSON.parse(text) as { subject: string; tone: string; email: string };
+  } catch {
+    // Distinct from the MAX_TOKENS message above: this is a genuinely
+    // malformed (but non-truncated, per finishReason) response, not a
+    // length problem -- telling the user "cut off" here would be wrong.
+    throw new Error("Gemini's response wasn't valid JSON, try again.");
+  }
 
   // Fold the subject line into the single `email` string the frontend
   // already renders (whitespace-pre-wrap, see components/result-card.tsx) --
@@ -218,12 +245,17 @@ export async function POST(request: Request) {
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: EMAIL_RESPONSE_SCHEMA,
-      // Generous relative to the actual output (a few sentences of JSON):
-      // this model version reasons internally before answering (confirmed
-      // via a raw API call -- responses carry a thoughtSignature), and
-      // those tokens count against this same budget. A tight cap here hits
-      // MAX_TOKENS from the reasoning alone, before any email text comes out.
-      maxOutputTokens: 2048,
+      // Generous relative to the actual output (a short email is maybe a
+      // couple hundred tokens of JSON, and SYSTEM_INSTRUCTION now tells the
+      // model to stay under ~120 words): this model version reasons
+      // internally before answering (confirmed via a raw API call --
+      // responses carry a thoughtSignature), and those tokens count against
+      // this same budget. That reasoning pass varies in length per prompt,
+      // so 2048 wasn't a safe ceiling -- it truncated on some prospects
+      // (reported live) even though the actual email text is tiny. This SDK
+      // doesn't expose a way to cap/disable the reasoning itself (checked
+      // its type defs -- no thinkingConfig), so the fix is headroom.
+      maxOutputTokens: 4096,
     },
   });
 
