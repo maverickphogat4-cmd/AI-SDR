@@ -1,9 +1,10 @@
 "use client";
 
-import { motion, useMotionTemplate, useScroll, useTransform, type MotionValue } from "framer-motion";
-import { useRef } from "react";
-import { GetStartedButton } from "@/components/get-started-button";
-import TextPressure from "@/components/react-bits/TextPressure";
+import { motion, useMotionTemplate, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "framer-motion";
+import Link from "next/link";
+import { useRef, useState, type MouseEvent } from "react";
+import { useGetStartedTransition } from "@/components/GetStartedTransition";
+import WarpText from "@/components/react-bits/WarpText";
 import { easeFn } from "@/lib/motion";
 
 const ACCENT = "#10B981";
@@ -137,33 +138,96 @@ function ValuePoint({
   );
 }
 
+/** The section's closing CTA: replaces the value-point text once the C is
+ * fully lit. Same click-intercept logic as GetStartedButton (this doesn't
+ * reuse that component directly -- it needs a big display-text layout, not
+ * pill styling -- but the behavior must match exactly: a plain left-click
+ * plays the LightTunnel + SplitFlapText transition before navigating,
+ * every other kind of click (middle-click, cmd/ctrl-click, etc.) falls
+ * through to the underlying <Link> so "open in new tab" still works). */
+function FinalCTA() {
+  const { navigate } = useGetStartedTransition();
+
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    navigate("/dashboard");
+  };
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 300, damping: 22 }}
+      className="w-full max-w-2xl"
+    >
+      <Link
+        href="/dashboard"
+        onClick={handleClick}
+        aria-label="Get started right now"
+        // group + drop-shadow (not a box-shadow -- WarpText's canvas has no
+        // background to cast one against) is the hover glow that signals
+        // this display-size text is clickable, not static copy.
+        className="group block cursor-pointer text-left outline-none transition-[filter] duration-300 hover:drop-shadow-[0_0_32px_rgba(16,185,129,0.55)]"
+      >
+        <WarpText
+          text={"GET STARTED\nRIGHT NOW"}
+          color={ACCENT}
+          fontFamily="GeistSans"
+          fontWeight={800}
+          // Matches Tailwind's own `tracking-tight` value (-0.025em) rather
+          // than the vendor default (-0.06em) so this reads as the same
+          // typographic voice as every other tracking-tight heading on the
+          // site, not a separately-tuned one.
+          letterSpacing="-0.025em"
+          lineHeight={0.95}
+          style={{ height: 300 }}
+        />
+      </Link>
+    </motion.div>
+  );
+}
+
 /**
  * Signature scroll moment: a 300vh section pins a single full-viewport-
  * height flex ROW (sticky trick -- see the wrapping div below) split into
  * two equal flex-1 halves: the "C" mark centered in the left half, the
- * active value point centered in the right half. Both halves are
- * positioned purely by that flex row (items-center on the row handles
- * vertical centering, flex-1 + justify-center on each half handles
- * horizontal) -- no absolute positioning or hardcoded top/left offsets are
- * used to PLACE either one, which is what previously let the C clip under
- * the nav and the text jam against the right edge. Three arcs light up in
- * sequence as the section scrolls, one per scroll third, each paired with
- * the value point that fades in on the right; both halves' POSITIONS never
- * move, only their content's opacity/glow does. The closing "Get started"
- * (floating, bottom-center of the same sticky row) uses the same
- * GetStartedButton (and the same LightTunnel + SplitFlapText transition) as
- * every other one on the site -- this section no longer has its own
- * bespoke click handler. Its label runs through TextPressure as this
- * section's one extra flourish.
+ * right half centered in the same row. Both halves are positioned purely
+ * by that flex row (items-center on the row handles vertical centering,
+ * flex-1 + justify-center on each half handles horizontal) -- no absolute
+ * positioning or hardcoded top/left offsets are used to PLACE either one,
+ * which is what previously let the C clip under the nav and the text jam
+ * against the right edge. Three arcs light up in sequence as the section
+ * scrolls, one per scroll third, each paired with the value point that
+ * fades in on the right; both halves' POSITIONS never move, only their
+ * content's opacity/glow does.
+ *
+ * The right half itself cross-fades between two layers occupying the same
+ * slot: the three value points (visible for progress < ~0.85, fully faded
+ * out by 0.85 via `pointsOpacity` -- overriding each ValuePoint's own
+ * internal per-segment fade so the handoff is clean instead of overlapping
+ * whichever point's fade happens to still be running) and FinalCTA (faded
+ * /slid in from 0.85 -> 1, same thresholds the old floating pill button
+ * used). FinalCTA is only mounted once scroll gets close (>0.8, a small
+ * head start before its own opacity fade begins) rather than for the whole
+ * 300vh scroll -- WarpText runs its own WebGL canvas continuously once
+ * mounted, and its built-in IntersectionObserver pause can't help here
+ * since the sticky row keeps its container "in viewport" for the entire
+ * section regardless of scroll progress.
  */
 export function CadenceMarkSection() {
   const sectionRef = useRef<HTMLElement>(null);
+  const [showFinalCTA, setShowFinalCTA] = useState(false);
 
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end end"] });
 
-  const buttonOpacity = useTransform(scrollYProgress, [0.85, 1], [0, 1]);
-  const buttonY = useTransform(scrollYProgress, [0.85, 1], [16, 0]);
-  const buttonPointerEvents = useTransform(scrollYProgress, (v) => (v > 0.9 ? "auto" : "none"));
+  useMotionValueEvent(scrollYProgress, "change", (v) => setShowFinalCTA(v > 0.8));
+
+  const pointsOpacity = useTransform(scrollYProgress, [0.78, 0.85], [1, 0]);
+  const ctaOpacity = useTransform(scrollYProgress, [0.85, 1], [0, 1]);
+  const ctaX = useTransform(scrollYProgress, [0.85, 1], [24, 0]);
+  const ctaPointerEvents = useTransform(scrollYProgress, (v) => (v > 0.9 ? "auto" : "none"));
 
   return (
     // z-10, no bg of its own -- the page-wide ColorBendsBackground (z-0,
@@ -191,70 +255,37 @@ export function CadenceMarkSection() {
           </div>
         </div>
 
-        {/* RIGHT half: the active value point, vertically centered at the
-            same height as the C (both are centered by the same row). */}
-        <div className="flex flex-1 flex-col justify-center">
+        {/* RIGHT half: cross-fades between the value points (early/mid
+            scroll) and FinalCTA (final scroll) in the same slot -- see the
+            component doc comment above for the handoff thresholds.
+            `relative` is what lets FinalCTA's `absolute inset-0` overlay
+            this same column instead of stacking below it. */}
+        <div className="relative flex flex-1 items-center justify-start">
           {/* This inner box is what the three ValuePoints stack inside via
-              absolute inset-0 for their scroll-scrubbed cross-fade -- it
-              needs its own explicit min-height because a box whose only
-              content is absolutely-positioned children has nothing left in
-              normal flow to size itself by, and would otherwise collapse to
-              0 height. Sized for the longest point's now-fuller copy (was
-              180px/28rem when the body copy was one thin line -- too short
-              a box just meant more empty space for justify-center to split
-              above/below the heading+description group, reading as an
-              awkward gap). max-w-[30rem] keeps lines from stretching too
-              wide while still wrapping the expanded copy comfortably. */}
-          <div className="relative min-h-[220px] w-full max-w-[30rem]">
+              their own absolute inset-0 for the scroll-scrubbed cross-fade
+              between points -- it needs its own explicit min-height
+              because a box whose only content is absolutely-positioned
+              children has nothing left in normal flow to size itself by,
+              and would otherwise collapse to 0 height. max-w-[30rem] keeps
+              lines from stretching too wide while still wrapping the copy
+              comfortably. pointsOpacity (not each point's own fade) is
+              what fully clears this whole group out by progress 0.85,
+              ahead of FinalCTA fading in. */}
+          <motion.div style={{ opacity: pointsOpacity }} className="relative min-h-[220px] w-full max-w-[30rem]">
             {POINTS.map((point, i) => (
               <ValuePoint key={point.heading} point={point} progress={scrollYProgress} range={SEGMENT_RANGES[i]} />
             ))}
-          </div>
+          </motion.div>
+
+          {showFinalCTA && (
+            <motion.div
+              style={{ opacity: ctaOpacity, x: ctaX, pointerEvents: ctaPointerEvents }}
+              className="absolute inset-0 flex flex-col justify-center"
+            >
+              <FinalCTA />
+            </motion.div>
+          )}
         </div>
-
-        {/* Floating CTA, not a third flex participant: absolute positioning
-            takes it out of flow entirely, so it has zero effect on the two
-            flex-1 halves' equal split above. */}
-        <motion.div
-          style={{ opacity: buttonOpacity, y: buttonY, pointerEvents: buttonPointerEvents }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2"
-        >
-          <GetStartedButton size="lg">
-            {/* TextPressure wants an explicitly-sized container (it reads
-                its own bounding box to compute font size), not the
-                button's natural content-sized width -- so this is a fixed
-                w/h box sitting inside the pill instead of plain text.
-                Scaled well down from the component's own demo sizing
-                (which assumes a few hundred px of height) to fit a button,
-                and only the weight axis is left on: Geist Sans is a
-                weight-only variable font, so width/italic pressure would
-                just be inert.
-
-                Never use a plain ASCII space between "Get" and "started"
-                below: the component wraps each character in its own
-                single-character span, and a span whose entire content is
-                one regular space gets that content collapsed away by
-                ordinary CSS whitespace rules -- rendering as "GETSTARTED"
-                with no gap at all, regardless of the flex/justify-content
-                setting. A non-breaking space isn't subject to that
-                collapsing, so it's what actually produces a visible gap. */}
-            <span className="relative inline-block h-7 w-[150px]">
-              <TextPressure
-                text={"Get started"}
-                fontFamily="GeistSans"
-                fontUrl=""
-                width={false}
-                weight
-                italic={false}
-                alpha={false}
-                flex={false}
-                scale={false}
-                minFontSize={16}
-                textColor="#000000"
-              />
-            </span>
-          </GetStartedButton>
-        </motion.div>
       </div>
     </section>
   );
