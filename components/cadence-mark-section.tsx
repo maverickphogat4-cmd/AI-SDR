@@ -34,15 +34,15 @@ const SEGMENT_RANGES: [number, number][] = [
 const POINTS = [
   {
     heading: "Researches every prospect",
-    body: "References their real recent activity: a LinkedIn post, a funding round, a new hire, not a guess.",
+    body: "Before a single word is written, Cadence pulls what's actually happening with your prospect, their latest LinkedIn post, a fresh funding round, a new hire, a product launch. Every email starts from a real, recent fact, never a guess or a generic assumption.",
   },
   {
     heading: "Writes, never templates",
-    body: "Each email grounded in one specific fact, not a mail-merge blank.",
+    body: "Each email is built around one specific detail about that person, not dropped into a mail-merge blank with their first name swapped in. The result reads like it was written by someone who actually did their homework, because it was.",
   },
   {
     heading: "Remembers every touch",
-    body: "Adjusts tone based on past replies: warmer after a reply, more direct after silence.",
+    body: "Cadence remembers every previous email and how the prospect responded. Follow-ups adapt automatically, warmer and more familiar after a reply, tighter and more direct after silence, so every touch builds on the last instead of starting over.",
   },
 ] as const;
 
@@ -125,10 +125,14 @@ function ValuePoint({
   return (
     <motion.div
       style={{ opacity, x, filter }}
+      // flex-col + justify-center (no justify-between, no spacer) is what
+      // keeps the heading and its description moving and centering as one
+      // tight unit -- gap between them comes only from the paragraph's own
+      // mt-5, not from anything pushing the two apart.
       className="pointer-events-none absolute inset-0 flex flex-col justify-center text-left"
     >
       <h3 className="font-heading text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{point.heading}</h3>
-      <p className="mt-6 text-base leading-relaxed text-zinc-300">{point.body}</p>
+      <p className="mt-5 font-sans text-base leading-relaxed text-zinc-300">{point.body}</p>
     </motion.div>
   );
 }
@@ -195,8 +199,13 @@ export function CadenceMarkSection() {
               needs its own explicit min-height because a box whose only
               content is absolutely-positioned children has nothing left in
               normal flow to size itself by, and would otherwise collapse to
-              0 height. max-w-[28rem] keeps lines from stretching too wide. */}
-          <div className="relative min-h-[180px] w-full max-w-[28rem]">
+              0 height. Sized for the longest point's now-fuller copy (was
+              180px/28rem when the body copy was one thin line -- too short
+              a box just meant more empty space for justify-center to split
+              above/below the heading+description group, reading as an
+              awkward gap). max-w-[30rem] keeps lines from stretching too
+              wide while still wrapping the expanded copy comfortably. */}
+          <div className="relative min-h-[220px] w-full max-w-[30rem]">
             {POINTS.map((point, i) => (
               <ValuePoint key={point.heading} point={point} progress={scrollYProgress} range={SEGMENT_RANGES[i]} />
             ))}
