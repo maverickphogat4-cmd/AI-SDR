@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MotionButton } from "@/components/motion-button";
 import { EASE } from "@/lib/motion";
 import type { GenerationResult, Prospect } from "@/lib/types";
@@ -22,8 +22,24 @@ const SECONDARY_BUTTON =
  * background this needs more than the landing page's bg-white/5. */
 export function ResultCard({ prospect, result, onSimulate }: ResultCardProps) {
   const [copied, setCopied] = useState(false);
+  const [showRetryHint, setShowRetryHint] = useState(false);
   const isLoading = result.status === "loading";
   const isDone = result.status === "done" && Boolean(result.email);
+
+  // The route (app/api/generate/route.ts) retries a Gemini free-tier
+  // 503/429 silently, with 1s/2s/4s backoff, before this card ever sees an
+  // error -- there's no streaming channel to announce that a retry is
+  // actually in flight, so elapsed time stands in for it. A normal
+  // successful generation resolves well under this window; still being in
+  // "loading" past it means a retry is almost certainly happening.
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => setShowRetryHint(true), 3000);
+    return () => {
+      clearTimeout(timer);
+      setShowRetryHint(false);
+    };
+  }, [isLoading]);
 
   const handleCopy = async () => {
     if (!result.email) return;
@@ -52,7 +68,16 @@ export function ResultCard({ prospect, result, onSimulate }: ResultCardProps) {
       </div>
 
       <div className="flex-1">
-        {isLoading && <EmailSkeleton />}
+        {isLoading && (
+          <>
+            <EmailSkeleton />
+            {showRetryHint && (
+              <p className="mt-3 text-xs text-amber-300/80">
+                High demand on the free tier right now — retrying automatically...
+              </p>
+            )}
+          </>
+        )}
 
         {result.status === "error" && (
           <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">

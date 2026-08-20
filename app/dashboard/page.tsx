@@ -13,6 +13,17 @@ import { ResultCard } from "@/components/result-card";
 import { MAX_PROSPECTS, type GenerationResult, type Prospect } from "@/lib/types";
 import { EASE } from "@/lib/motion";
 
+// Mirrors app/api/generate/route.ts's own STAGGER_MS: that route staggers
+// prospects *within* one request, but this dashboard actually sends one
+// request per prospect (see generateOne below), so the real "all of them
+// hit Gemini in the same instant" race happens here, at the fetch
+// call-site, not inside the route's internal loop.
+const GENERATE_STAGGER_MS = 400;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function createEmptyProspect(): Prospect {
   return {
     id: crypto.randomUUID(),
@@ -98,8 +109,13 @@ export default function DashboardPage() {
     });
 
     // Each task updates its own card the moment it resolves -- no awaiting
-    // the whole batch before anything renders.
-    const tasks = prospects.map(async (prospect) => {
+    // the whole batch before anything renders. Staggering the kickoff (not
+    // the whole request) keeps that independence: every card still flips
+    // to "loading" immediately above, only the actual fetch to Gemini is
+    // delayed a little per prospect so 3+ requests don't land on the free
+    // tier in the same instant and trip its overload limit.
+    const tasks = prospects.map(async (prospect, index) => {
+      if (index > 0) await sleep(index * GENERATE_STAGGER_MS);
       const outcome = await generateOne(prospect);
       setResults((prev) => ({
         ...prev,

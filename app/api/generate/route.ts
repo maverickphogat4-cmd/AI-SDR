@@ -68,6 +68,51 @@ const EMAIL_RESPONSE_SCHEMA: ResponseSchema = {
   required: ["subject", "tone", "email"],
 };
 
+// Free-tier "the model is overloaded" 503s (and their 429 rate-limit
+// cousin) are transient -- the same request usually succeeds a second or
+// two later. withRetry() below is what actually retries; this stagger is
+// what keeps a batch from manufacturing that overload in the first place
+// by not sending every prospect's request in the same instant.
+const STAGGER_MS = 400;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// 503 ("model overloaded") and 429 (rate limited) are the two Gemini
+// free-tier errors worth retrying -- both clear up on their own within a
+// few seconds. Matched by status when the SDK gives us one
+// (GoogleGenerativeAIFetchError), and by message text as a fallback since
+// not every overload surfaces with a typed status.
+function isRetryableError(err: unknown): boolean {
+  if (err instanceof GoogleGenerativeAIFetchError && (err.status === 503 || err.status === 429)) {
+    return true;
+  }
+  const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    message.includes("overloaded") ||
+    message.includes("rate limit") ||
+    message.includes("503") ||
+    message.includes("429")
+  );
+}
+
+// Retries a transient Gemini failure with exponential backoff (1s, 2s,
+// 4s) before giving up -- up to 3 retries beyond the initial attempt, 4
+// tries total. Non-retryable errors (bad key, blocked prompt, malformed
+// response, ...) skip straight to the throw so those fail fast instead of
+// wasting 7s retrying something backoff can't fix.
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 1000): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt >= maxRetries || !isRetryableError(err)) throw err;
+      await sleep(baseDelayMs * 2 ** attempt);
+    }
+  }
+}
+
 type GenerateRequestBody = {
   prospects?: Prospect[];
 };
@@ -197,8 +242,11 @@ function describeError(err: unknown): string {
     if (err.status === 503) {
       // Common in practice on the free tier -- confirmed live during
       // testing, not just a theoretical case -- so it gets its own message
-      // rather than falling into the generic bucket below.
-      return "Gemini is overloaded right now (free tier). Wait a few seconds and try again.";
+      // rather than falling into the generic bucket below. By the time this
+      // fires, withRetry() has already silently retried 3 times with
+      // backoff, so this is the "even that didn't work" message, not the
+      // first sign of trouble.
+      return "High demand on the free tier right now — retried automatically but it's still overloaded. Wait a few seconds and try again.";
     }
     return `Gemini API error (${err.status ?? "unknown"}): ${err.message}`;
   }
@@ -261,12 +309,18 @@ export async function POST(request: Request) {
 
   // Independent per-prospect try/catch: one prospect hitting a refusal or a
   // transient API error shouldn't take down emails that were generating
-  // fine. Run concurrently -- these are independent requests to the API.
+  // fine. Still run concurrently -- these are independent requests to the
+  // API -- but staggered: kicking every prospect off in the same instant
+  // (the old plain Promise.all) is exactly what was tripping the free
+  // tier's "model overloaded" 503s, so each prospect's turn waits
+  // index * STAGGER_MS before starting. Errors per prospect (including
+  // "retries exhausted") are still isolated to that prospect's own result.
   const results: GeneratedEmail[] = await Promise.all(
-    prospects.map(async (prospect): Promise<GeneratedEmail> => {
+    prospects.map(async (prospect, index): Promise<GeneratedEmail> => {
       try {
+        if (index > 0) await sleep(index * STAGGER_MS);
         const memory = await getProspectMemory(prospect.name);
-        const { tone, email } = await generateEmail(model, prospect, memory);
+        const { tone, email } = await withRetry(() => generateEmail(model, prospect, memory));
 
         // Log the touch *after* a successful generation -- a failed attempt
         // shouldn't pollute history with an email that was never actually sent.
